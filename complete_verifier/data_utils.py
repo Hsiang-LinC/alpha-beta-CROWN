@@ -330,3 +330,43 @@ def load_pkl_dataset(spec):
     print('Overwrite epsilon that saved in .pkl file, they should be after normalized!')
     eps_new = [torch.reshape(torch.tensor(i, dtype=torch.get_default_dtype()), (1, -1, 1, 1)) for i in eps_new]
     return (X, labels, data_max, data_min, eps_new, runnerup, target_label)
+
+
+def load_tinyimagenet_dataset(spec):
+    """
+    Load TinyImageNet validation set from local directory, apply normalization, and return tensors.
+    """
+    import os
+    import torch
+    from torchvision import datasets, transforms
+
+    # Set the path to your local TinyImageNet validation directory
+    tiny_imagenet_root = os.path.expanduser('~/datasets/tiny-imagenet-200')
+    val_dir = os.path.join(tiny_imagenet_root, 'val')
+
+    # Use standard TinyImageNet normalization
+    mean = torch.tensor([0.4802, 0.4481, 0.3975])
+    std = torch.tensor([0.2302, 0.2265, 0.2262])
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean.tolist(), std.tolist())
+    ])
+
+    val_dataset = datasets.ImageFolder(val_dir, transform=transform)
+    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False, num_workers=4)
+    X, labels = next(iter(val_loader))
+
+    # Set data_max and data_min for normalized data (same style as load_dataset)
+    data_max = torch.reshape((1.0 - mean) / std, (1, -1, 1, 1))
+    data_min = torch.reshape((0.0 - mean) / std, (1, -1, 1, 1))
+
+    # Epsilon handling (must be set in spec)
+    if spec['epsilon'] is None:
+        raise ValueError('You must specify an epsilon for TinyImageNet')
+    eps_temp = torch.tensor(spec['epsilon'])
+    std_tensor = std.to(dtype=torch.get_default_dtype())
+    eps_temp = torch.reshape(eps_temp / std_tensor, (1, -1, 1, 1))
+
+    runnerup = None  # Not available for TinyImageNet
+
+    return X, labels, data_max, data_min, eps_temp, runnerup

@@ -54,6 +54,9 @@ def load_verification_dataset():
         dataset_method = load_sampled_dataset
     elif "CIFAR" in arguments.Config["data"]["dataset"] or "MNIST" in arguments.Config["data"]["dataset"]:
         dataset_method = load_generic_dataset
+    elif "TinyImageNet" in arguments.Config["data"]["dataset"]:
+        from data_utils import load_tinyimagenet_dataset
+        dataset_method = load_tinyimagenet_dataset
     else:
         raise NotImplementedError(
             'Dataset not supported in this file! '
